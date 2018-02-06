@@ -32,6 +32,7 @@ if (typeof jQuery === 'undefined') {
         this.STATUS_NOT_VALIDATED = 'NOT_VALIDATED';
         this.STATUS_VALIDATING    = 'VALIDATING';
         this.STATUS_INVALID       = 'INVALID';
+        this.STATUS_WARN          = 'WARN';
         this.STATUS_VALID         = 'VALID';
 
         // Determine the event that is fired when user change the field value
@@ -947,7 +948,7 @@ if (typeof jQuery === 'undefined') {
                     else if ('object' === typeof validateResult && validateResult.valid !== undefined && validateResult.message !== undefined) {
                         $field.data('bv.response.' + validatorName, validateResult);
                         this.updateMessage(updateAll ? field : $field, validatorName, validateResult.message);
-                        this.updateStatus(updateAll ? field : $field, validateResult.valid ? this.STATUS_VALID : this.STATUS_INVALID, validatorName);
+                        this.updateStatus(updateAll ? field : $field, validateResult.valid ? this.STATUS_VALID : (!!validators[validatorName].warn ? this.STATUS_WARN : this.STATUS_INVALID), validatorName);
                         if (!validateResult.valid && !verbose) {
                             break;
                         }
@@ -1038,7 +1039,7 @@ if (typeof jQuery === 'undefined') {
                     $errors      = validatorName ? $allErrors.filter('[data-bv-validator="' + validatorName + '"]') : $allErrors,
                     $icon        = $field.data('bv.icon'),
                     container    = ('function' === typeof (this.options.fields[field].container || this.options.container)) ? (this.options.fields[field].container || this.options.container).call(this, $field, this) : (this.options.fields[field].container || this.options.container),
-                    isValidField = null;
+                    isValidField = null; // isValidFile有四种状态 null:仍有未校验的,0:不通过,1:完美通过,2:警告
 
                 // Update status
                 if (validatorName) {
@@ -1058,64 +1059,87 @@ if (typeof jQuery === 'undefined') {
                 if ($tabPane && (tabId = $tabPane.attr('id'))) {
                     $tab = $('a[href="#' + tabId + '"][data-toggle="tab"]').parent();
                 }
+                if($allErrors.filter('[data-bv-result="' + this.STATUS_NOT_VALIDATED +'"]').length !== 0 ||
+                    $allErrors.filter('[data-bv-result="' + this.STATUS_VALIDATING +'"]').length !== 0) {
+                    isValidField = null;
+                } else if($allErrors.filter('[data-bv-result="' + this.STATUS_INVALID +'"]').length !== 0) {
+                    isValidField = 0;
+                } else if($allErrors.filter('[data-bv-result="' + this.STATUS_WARN +'"]').length !== 0) {
+                    isValidField = 2;
+                } else {
+                    isValidField = 1;
+                }
 
                 switch (status) {
                     case this.STATUS_VALIDATING:
-                        isValidField = null;
                         this.disableSubmitButtons(true);
-                        $parent.removeClass('has-success').removeClass('has-error');
+                        $parent.removeClass('has-success').removeClass('has-error').removeClass('has-warn');
                         if ($icon) {
-                            $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.invalid).addClass(this.options.feedbackIcons.validating).show();
+                            $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.invalid)
+                            .removeClass(this.options.feedbackIcons.warn).addClass(this.options.feedbackIcons.validating).show();
                         }
                         if ($tab) {
-                            $tab.removeClass('bv-tab-success').removeClass('bv-tab-error');
+                            $tab.removeClass('bv-tab-success').removeClass('bv-tab-error').removeClass('bv-tab-warn');
                         }
                         break;
 
                     case this.STATUS_INVALID:
-                        isValidField = false;
                         this.disableSubmitButtons(true);
-                        $parent.removeClass('has-success').addClass('has-error');
-                        if ($icon) {
-                            $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.validating).addClass(this.options.feedbackIcons.invalid).show();
-                        }
-                        if ($tab) {
-                            $tab.removeClass('bv-tab-success').addClass('bv-tab-error');
+                        if(isValidField != null) {
+                            $parent.removeClass('has-success').removeClass('has-warn').addClass('has-error');
+                            if ($icon) {
+                                $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.validating)
+                                .removeClass(this.options.feedbackIcons.warn).addClass(this.options.feedbackIcons.invalid).show();
+                            }
+                            if ($tab) {
+                                $tab.removeClass('bv-tab-success').removeClass('bv-tab-warn').addClass('bv-tab-error');
+                            }
                         }
                         break;
 
+                    case this.STATUS_WARN:
+
                     case this.STATUS_VALID:
-                        // If the field is valid (passes all validators)
-                        isValidField = ($allErrors.filter('[data-bv-result="' + this.STATUS_NOT_VALIDATED +'"]').length === 0)
-                                     ? ($allErrors.filter('[data-bv-result="' + this.STATUS_VALID +'"]').length === $allErrors.length)  // All validators are completed
-                                     : null;                                                                                            // There are some validators that have not done
                         if (isValidField !== null) {
                             this.disableSubmitButtons(this.$submitButton ? !this.isValid() : !isValidField);
                             if ($icon) {
                                 $icon
-                                    .removeClass(this.options.feedbackIcons.invalid).removeClass(this.options.feedbackIcons.validating).removeClass(this.options.feedbackIcons.valid)
-                                    .addClass(isValidField ? this.options.feedbackIcons.valid : this.options.feedbackIcons.invalid)
-                                    .show();
+                                    .removeClass(this.options.feedbackIcons.invalid).removeClass(this.options.feedbackIcons.validating)
+                                    .removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.warn).show();
+                                switch (isValidField) {
+                                    case 0:
+                                        $icon.addClass(this.options.feedbackIcons.invalid);
+                                    break;
+                                    case 1:
+                                        $icon.addClass(this.options.feedbackIcons.valid);
+                                    break;
+                                    case 2:
+                                        $icon.addClass(this.options.feedbackIcons.warn);
+                                    break;
+                                }
                             }
-                        }
-
-                        $parent.removeClass('has-error has-success').addClass(this.isValidContainer($parent) ? 'has-success' : 'has-error');
-                        if ($tab) {
-                            $tab.removeClass('bv-tab-success').removeClass('bv-tab-error').addClass(this.isValidContainer($tabPane) ? 'bv-tab-success' : 'bv-tab-error');
+                            var parentValid = this.isValidContainer($parent);
+                            $parent.removeClass('has-error has-success has-warn').addClass(parentValid === 2 ? 'has-warn' :
+                             (parentValid ? 'has-success' : 'has-error'));
+                            if ($tab) {
+                                var tabValid = this.isValidContainer($tabPane);
+                                $tab.removeClass('bv-tab-success').removeClass('bv-tab-error').addClass(tabValid === 2 ? 'bv-tab-warn' :
+                                    (tabValid ? 'bv-tab-success' : 'bv-tab-error'));
+                            }
                         }
                         break;
 
                     case this.STATUS_NOT_VALIDATED:
                     /* falls through */
                     default:
-                        isValidField = null;
                         this.disableSubmitButtons(false);
-                        $parent.removeClass('has-success').removeClass('has-error');
+                        $parent.removeClass('has-success').removeClass('has-error').removeClass('has-warn');
                         if ($icon) {
-                            $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.invalid).removeClass(this.options.feedbackIcons.validating).hide();
+                            $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.invalid)
+                            .removeClass(this.options.feedbackIcons.validating).removeClass(this.options.feedbackIcons.warn).hide();
                         }
                         if ($tab) {
-                            $tab.removeClass('bv-tab-success').removeClass('bv-tab-error');
+                            $tab.removeClass('bv-tab-success').removeClass('bv-tab-error').removeClass('bv-tab-warn');
                         }
                         break;
                 }
@@ -1123,21 +1147,21 @@ if (typeof jQuery === 'undefined') {
                 switch (true) {
                     // Only show the first error message if it is placed inside a tooltip ...
                     case ($icon && 'tooltip' === container):
-                        (isValidField === false)
+                        (isValidField === 0 || isValidField === 2)
                                 ? $icon.css('cursor', 'pointer').tooltip('destroy').tooltip({
                                     container: 'body',
                                     html: true,
                                     placement: 'auto top',
-                                    title: $allErrors.filter('[data-bv-result="' + that.STATUS_INVALID + '"]').eq(0).html()
+                                    title: $allErrors.filter('[data-bv-result="' + that.STATUS_INVALID + '"],[data-bv-result="' + that.STATUS_WARN + '"]').eq(0).html()
                                 })
                                 : $icon.css('cursor', '').tooltip('destroy');
                         break;
                     // ... or popover
                     case ($icon && 'popover' === container):
-                        (isValidField === false)
+                        (isValidField === 0 || isValidField === 2)
                                 ? $icon.css('cursor', 'pointer').popover('destroy').popover({
                                     container: 'body',
-                                    content: $allErrors.filter('[data-bv-result="' + that.STATUS_INVALID + '"]').eq(0).html(),
+                                    content: $allErrors.filter('[data-bv-result="' + that.STATUS_INVALID + '"],[data-bv-result="' + that.STATUS_WARN + '"]').eq(0).html(),
                                     html: true,
                                     placement: 'auto top',
                                     trigger: 'hover click'
@@ -1145,7 +1169,7 @@ if (typeof jQuery === 'undefined') {
                                 : $icon.css('cursor', '').popover('destroy');
                         break;
                     default:
-                        (status === this.STATUS_INVALID) ? $errors.show() : $errors.hide();
+                        (status === this.STATUS_INVALID || status === this.STATUS_WARN) ? $errors.show() : $errors.hide();
                         break;
                 }
 
@@ -1215,7 +1239,7 @@ if (typeof jQuery === 'undefined') {
                     }
 
                     status = $field.data('bv.result.' + validatorName);
-                    if (status !== this.STATUS_VALID) {
+                    if (status !== this.STATUS_VALID && status !== this.STATUS_WARN) {
                         return false;
                     }
                 }
@@ -1229,10 +1253,11 @@ if (typeof jQuery === 'undefined') {
          * It's useful when working with a wizard-like such as tab, collapse
          *
          * @param {String|jQuery} container The container selector or element
-         * @returns {Boolean}
+         * @returns {Object}    返回值为true,false,2.2为警告
          */
         isValidContainer: function(container) {
             var that       = this,
+                hasWarn    = false, // 区域里是否有警告级别的提示
                 map        = {},
                 $container = ('string' === typeof container) ? $(container) : container;
             if ($container.length === 0) {
@@ -1249,15 +1274,17 @@ if (typeof jQuery === 'undefined') {
 
             for (var field in map) {
                 var $f = map[field];
-                if ($f.data('bv.messages')
-                      .find('.help-block[data-bv-validator][data-bv-for="' + field + '"]')
-                      .filter('[data-bv-result="' + this.STATUS_INVALID +'"]')
-                      .length > 0)
-                {
+                var msg = $f.data('bv.messages').find('.help-block[data-bv-validator][data-bv-for="' + field + '"]');
+                if ((msg.filter('[data-bv-result="' + this.STATUS_WARN +'"]').length + msg.filter('[data-bv-result="' + this.STATUS_VALID +'"]').length)
+                    != msg.length) {
                     return false;
+                } else if(msg.filter('[data-bv-result="' + this.STATUS_VALID +'"]').length !== 0) {
+                    hasWarn = true;
                 }
             }
-
+            if(hasWarn) {
+                return 2;
+            }
             return true;
         },
 

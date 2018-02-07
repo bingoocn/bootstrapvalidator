@@ -1073,7 +1073,7 @@ if (typeof jQuery === 'undefined') {
                 switch (status) {
                     case this.STATUS_VALIDATING:
                         this.disableSubmitButtons(true);
-                        $parent.removeClass('has-success').removeClass('has-error').removeClass('has-warn');
+                        $parent.removeClass('has-success').removeClass('has-error').removeClass('has-warning');
                         if ($icon) {
                             $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.invalid)
                             .removeClass(this.options.feedbackIcons.warn).addClass(this.options.feedbackIcons.validating).show();
@@ -1086,7 +1086,7 @@ if (typeof jQuery === 'undefined') {
                     case this.STATUS_INVALID:
                         this.disableSubmitButtons(true);
                         if(isValidField != null) {
-                            $parent.removeClass('has-success').removeClass('has-warn').addClass('has-error');
+                            $parent.removeClass('has-success').removeClass('has-warning').addClass('has-error');
                             if ($icon) {
                                 $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.validating)
                                 .removeClass(this.options.feedbackIcons.warn).addClass(this.options.feedbackIcons.invalid).show();
@@ -1119,7 +1119,7 @@ if (typeof jQuery === 'undefined') {
                                 }
                             }
                             var parentValid = this.isValidContainer($parent);
-                            $parent.removeClass('has-error has-success has-warn').addClass(parentValid === 2 ? 'has-warn' :
+                            $parent.removeClass('has-error has-success has-warning').addClass(parentValid === 2 ? 'has-warning' :
                              (parentValid ? 'has-success' : 'has-error'));
                             if ($tab) {
                                 var tabValid = this.isValidContainer($tabPane);
@@ -1133,7 +1133,7 @@ if (typeof jQuery === 'undefined') {
                     /* falls through */
                     default:
                         this.disableSubmitButtons(false);
-                        $parent.removeClass('has-success').removeClass('has-error').removeClass('has-warn');
+                        $parent.removeClass('has-success').removeClass('has-error').removeClass('has-warning');
                         if ($icon) {
                             $icon.removeClass(this.options.feedbackIcons.valid).removeClass(this.options.feedbackIcons.invalid)
                             .removeClass(this.options.feedbackIcons.validating).removeClass(this.options.feedbackIcons.warn).hide();
@@ -1278,7 +1278,7 @@ if (typeof jQuery === 'undefined') {
                 if ((msg.filter('[data-bv-result="' + this.STATUS_WARN +'"]').length + msg.filter('[data-bv-result="' + this.STATUS_VALID +'"]').length)
                     != msg.length) {
                     return false;
-                } else if(msg.filter('[data-bv-result="' + this.STATUS_VALID +'"]').length !== 0) {
+                } else if(msg.filter('[data-bv-result="' + this.STATUS_WARN +'"]').length !== 0) {
                     hasWarn = true;
                 }
             }

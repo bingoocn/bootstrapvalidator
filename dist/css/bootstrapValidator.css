@@ -29,3 +29,6 @@
 	top: 0;
 	z-index: 100;
 }
+.has-error .help-block[data-bv-result="WARN"]{
+  color: #8a6d3b;
+}
